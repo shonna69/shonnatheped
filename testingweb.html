@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CASEROOM — Detective Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0805;--surface:#120e08;--surface2:#1c1610;--surface3:#261c10;
+  --border:#2e2010;--border2:#3e3018;--gold:#c8973a;--gold2:#e8b84a;--gold3:#f5d070;
+  --red:#b03020;--red2:#d04030;--green:#2a7040;--green2:#3a9050;
+  --text:#d4c8a8;--text2:#8a7850;--text3:#5a4830;
+  --paper:#f2ead8;--paper2:#e8dcc8;
+}
+html,body{height:100%;overflow:hidden;font-family:'Courier Prime',monospace;}
+body{background:var(--bg);color:var(--text);}
+
+/* ── SCREENS ── */
+.screen{position:fixed;inset:0;display:none;z-index:10;}
+.screen.active{display:flex;}
+
+/* ── AUTH SCREEN ── */
+#auth-screen{background:var(--bg);flex-direction:column;align-items:center;justify-content:center;gap:0;}
+#auth-screen::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(200,151,58,0.04) 39px,rgba(200,151,58,0.04) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(200,151,58,0.04) 39px,rgba(200,151,58,0.04) 40px);pointer-events:none;}
+#auth-box{width:380px;background:var(--surface);border:1px solid var(--border2);padding:40px 36px;position:relative;}
+#auth-box::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:2px;background:var(--gold);}
+.auth-logo{font-family:'Special Elite',serif;font-size:28px;color:var(--gold2);letter-spacing:6px;text-align:center;margin-bottom:4px;}
+.auth-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);text-align:center;letter-spacing:3px;margin-bottom:32px;}
+.auth-tabs{display:flex;gap:0;margin-bottom:28px;border-bottom:1px solid var(--border2);}
+.auth-tab{flex:1;padding:8px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;text-align:center;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s;}
+.auth-tab.active{color:var(--gold2);border-bottom-color:var(--gold2);}
+.auth-field{margin-bottom:16px;}
+.auth-field label{display:block;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:6px;}
+.auth-field input{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Courier Prime',monospace;font-size:13px;padding:10px 12px;outline:none;transition:border-color 0.2s;}
+.auth-field input:focus{border-color:var(--gold);}
+.auth-btn{width:100%;background:var(--gold);border:none;color:#0b0805;font-family:'Special Elite',serif;font-size:14px;letter-spacing:3px;padding:12px;cursor:pointer;margin-top:8px;transition:background 0.2s;}
+.auth-btn:hover{background:var(--gold2);}
+.auth-error{background:#300;border:1px solid var(--red);color:#f08080;font-size:11px;padding:8px 12px;margin-top:12px;display:none;}
+.auth-error.show{display:block;}
+
+/* ── LOBBY SCREEN ── */
+#lobby-screen{background:var(--bg);flex-direction:column;align-items:center;justify-content:center;overflow-y:auto;}
+#lobby-screen::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 39px,rgba(200,151,58,0.04) 39px,rgba(200,151,58,0.04) 40px),repeating-linear-gradient(90deg,transparent,transparent 39px,rgba(200,151,58,0.04) 39px,rgba(200,151,58,0.04) 40px);pointer-events:none;}
+#lobby-box{width:680px;max-width:95vw;padding:20px 0;}
+.lobby-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;padding:0 4px;}
+.lobby-title{font-family:'Special Elite',serif;color:var(--gold2);font-size:22px;letter-spacing:4px;}
+.lobby-user{display:flex;align-items:center;gap:10px;}
+.lobby-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#0b0805;}
+.lobby-username{font-size:12px;color:var(--text2);}
+.lobby-logout{font-size:10px;color:var(--text3);cursor:pointer;padding:4px 8px;border:1px solid var(--border);letter-spacing:1px;}
+.lobby-logout:hover{color:var(--gold);border-color:var(--gold);}
+.lobby-section-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.new-case-form{background:var(--surface);border:1px solid var(--border2);padding:20px;margin-bottom:28px;position:relative;}
+.new-case-form::before{content:'NEW CASE';position:absolute;top:-9px;left:16px;background:var(--bg);padding:0 8px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--gold);letter-spacing:2px;}
+.case-form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.case-form-field label{display:block;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:1px;margin-bottom:5px;}
+.case-form-field input,.case-form-field textarea,.case-form-field select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Courier Prime',monospace;font-size:12px;padding:8px 10px;outline:none;resize:none;}
+.case-form-field input:focus,.case-form-field textarea:focus{border-color:var(--gold);}
+.create-case-btn{background:var(--gold);border:none;color:#0b0805;font-family:'Special Elite',serif;font-size:12px;letter-spacing:2px;padding:10px 24px;cursor:pointer;}
+.create-case-btn:hover{background:var(--gold2);}
+.cases-grid{display:grid;gap:10px;}
+.case-card{background:var(--surface);border:1px solid var(--border2);padding:16px 20px;cursor:pointer;transition:border-color 0.2s;display:flex;align-items:center;justify-content:space-between;}
+.case-card:hover{border-color:var(--gold);background:var(--surface2);}
+.case-card-left{}
+.case-num{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--gold);letter-spacing:2px;}
+.case-name{font-family:'Special Elite',serif;font-size:16px;color:var(--text);margin:3px 0;}
+.case-desc{font-size:11px;color:var(--text2);}
+.case-card-right{text-align:right;}
+.case-agents{font-size:10px;color:var(--text3);}
+.case-date{font-size:10px;color:var(--text3);margin-top:2px;}
+.case-status{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 8px;letter-spacing:1px;margin-top:6px;}
+.case-status.active{background:#1a3010;color:#4ab050;border:1px solid #2a5020;}
+.case-status.closed{background:#1a0808;color:#a04040;border:1px solid #3a1010;}
+.no-cases{font-size:12px;color:var(--text3);text-align:center;padding:28px;border:1px dashed var(--border);}
+
+/* ── MAIN APP ── */
+#app-screen{flex-direction:row;overflow:hidden;}
+#sidebar{width:230px;min-width:230px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;z-index:2;}
+#sidebar-top{padding:14px 14px 10px;border-bottom:1px solid var(--border);}
+.case-badge-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.case-badge{background:var(--red);color:#fff;font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 7px;letter-spacing:1px;}
+.case-back{font-size:10px;color:var(--text3);cursor:pointer;margin-left:auto;padding:2px 6px;border:1px solid var(--border);}
+.case-back:hover{color:var(--gold);border-color:var(--gold);}
+.sidebar-case-name{font-family:'Special Elite',serif;color:var(--gold2);font-size:14px;letter-spacing:1px;}
+.sidebar-case-desc{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;}
+
+/* AGENTS */
+#agents-section{padding:10px 12px;border-bottom:1px solid var(--border);}
+#agents-section h4{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:8px;}
+.agent-row{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.agent-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0b0805;flex-shrink:0;position:relative;}
+.agent-av.me{border:2px solid var(--gold);}
+.presence-dot{position:absolute;bottom:-1px;right:-1px;width:8px;height:8px;border-radius:50%;border:1px solid var(--surface);}
+.presence-dot.online{background:var(--green2);}
+.presence-dot.offline{background:#444;}
+.agent-info{flex:1;min-width:0;}
+.agent-name{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.agent-activity{font-size:9px;color:var(--text3);}
+.agent-activity.active-activity{color:var(--gold);animation:blink 1.5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* TOOLS */
+#tools-section{padding:10px 12px;border-bottom:1px solid var(--border);}
+#tools-section h4{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:8px;}
+.tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.tool-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;padding:7px 4px;cursor:pointer;text-align:center;transition:all 0.15s;}
+.tool-btn:hover,.tool-btn.active{background:var(--surface3);color:var(--gold2);border-color:var(--gold);}
+.tool-icon{font-size:13px;display:block;margin-bottom:2px;}
+
+/* MARKERS */
+#marker-section{padding:10px 12px;border-bottom:1px solid var(--border);}
+#marker-section h4{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;margin-bottom:8px;}
+.swatches{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform 0.15s;}
+.swatch:hover,.swatch.on{transform:scale(1.25);border-color:var(--gold2);}
+.slider-row{margin-bottom:6px;}
+.slider-row label{font-size:9px;color:var(--text3);font-family:'Share Tech Mono',monospace;letter-spacing:1px;display:flex;justify-content:space-between;margin-bottom:3px;}
+.slider-row label span{color:var(--gold);}
+input[type=range]{width:100%;accent-color:var(--gold);height:14px;}
+.clear-btn{width:100%;background:transparent;border:1px solid var(--red);color:var(--red);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;padding:5px;cursor:pointer;margin-top:4px;}
+.clear-btn:hover{background:#200;}
+
+/* CHAT */
+#chat-section{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#chat-section h4{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;padding:10px 12px 6px;border-bottom:1px solid var(--border);}
+#chat-msgs{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:4px;}
+#chat-msgs::-webkit-scrollbar{width:2px;}
+#chat-msgs::-webkit-scrollbar-thumb{background:var(--border2);}
+.chat-msg{font-size:11px;line-height:1.4;}
+.chat-msg .cn{font-weight:700;font-size:10px;}
+.chat-msg .ct{color:var(--text2);}
+.chat-msg .cts{font-size:9px;color:var(--text3);float:right;}
+.chat-sys{font-size:10px;color:var(--text3);font-style:italic;text-align:center;padding:2px 0;}
+.chat-input-row{padding:7px 8px;border-top:1px solid var(--border);display:flex;gap:5px;}
+#chat-in{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Courier Prime',monospace;font-size:11px;padding:6px 8px;outline:none;}
+#chat-in:focus{border-color:var(--gold);}
+#chat-send-btn{background:var(--surface3);border:1px solid var(--border2);color:var(--gold);padding:6px 10px;cursor:pointer;font-size:13px;}
+#chat-send-btn:hover{background:var(--gold);color:#0b0805;}
+
+/* BOARD */
+#board-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#topbar{height:38px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;padding:0 14px;flex-shrink:0;}
+#topbar h1{font-family:'Special Elite',serif;font-size:13px;color:var(--gold2);letter-spacing:3px;margin-right:6px;}
+.tsep{width:1px;height:18px;background:var(--border2);}
+.tbar-btn{background:none;border:1px solid transparent;color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;padding:4px 8px;cursor:pointer;transition:all 0.15s;}
+.tbar-btn:hover{border-color:var(--border2);color:var(--gold);background:var(--surface2);}
+#live-indicator{margin-left:auto;display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--green2);}
+#live-indicator .ld{width:6px;height:6px;border-radius:50%;background:var(--green2);animation:blink 2s infinite;}
+#board-wrap{flex:1;position:relative;overflow:hidden;background:#170f08;}
+#board-grid{position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 29px,rgba(200,151,58,0.05) 29px,rgba(200,151,58,0.05) 30px),repeating-linear-gradient(90deg,transparent,transparent 29px,rgba(200,151,58,0.05) 29px,rgba(200,151,58,0.05) 30px);}
+#draw-canvas{position:absolute;inset:0;pointer-events:none;}
+#draw-overlay{position:absolute;inset:0;}
+#board-items{position:absolute;inset:0;pointer-events:none;}
+#string-svg{position:absolute;inset:0;pointer-events:none;z-index:5;}
+
+/* BOARD ITEMS */
+.bi{position:absolute;pointer-events:all;cursor:move;user-select:none;}
+.sticky{padding:12px 12px 14px;min-width:130px;max-width:180px;font-family:'Courier Prime',monospace;font-size:12px;color:#1a1208;line-height:1.5;box-shadow:4px 4px 0 rgba(0,0,0,0.5);position:relative;}
+.sticky .pin{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:13px;height:13px;background:var(--red2);border-radius:50%;border:2px solid #800;box-shadow:0 2px 5px rgba(0,0,0,0.7);}
+.sticky .sticky-text{outline:none;min-height:20px;word-break:break-word;}
+.sticky .sticky-text[contenteditable=true]{background:rgba(255,255,255,0.2);cursor:text;}
+.sticky .sticky-label{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;opacity:0.6;}
+.evcard{background:var(--paper);border:1px solid #b8a870;padding:10px;min-width:130px;max-width:170px;box-shadow:4px 4px 0 rgba(0,0,0,0.5);}
+.evcard .pin{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:13px;height:13px;background:var(--red2);border-radius:50%;border:2px solid #800;box-shadow:0 2px 5px rgba(0,0,0,0.7);}
+.evcard .ev-id{font-family:'Share Tech Mono',monospace;font-size:9px;color:#8a6a20;letter-spacing:2px;border-bottom:1px solid #c8a860;padding-bottom:4px;margin-bottom:6px;}
+.evcard .ev-type{font-family:'Special Elite',serif;font-size:11px;color:#2a1a08;}
+.evcard .ev-preview{margin-top:6px;max-width:100%;max-height:80px;object-fit:cover;border:1px solid #c8a860;}
+.evcard .ev-audio{margin-top:6px;width:100%;height:24px;}
+.evcard .ev-docname{font-size:10px;color:#5a4010;margin-top:4px;word-break:break-all;}
+.evcard .ev-tag{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:8px;background:var(--red);color:#fff;padding:1px 6px;margin-top:5px;letter-spacing:1px;}
+.person-card{background:var(--paper);border:2px solid #8b6914;padding:10px;width:120px;text-align:center;box-shadow:4px 4px 0 rgba(0,0,0,0.6);}
+.person-card .pin{position:absolute;top:-9px;left:50%;transform:translateX(-50%);width:13px;height:13px;background:var(--red2);border-radius:50%;border:2px solid #800;box-shadow:0 2px 5px rgba(0,0,0,0.7);}
+.person-card .pc-photo{width:60px;height:60px;border-radius:50%;margin:0 auto 6px;border:2px solid #8b6914;display:flex;align-items:center;justify-content:center;font-size:24px;background:#e8dfc8;overflow:hidden;}
+.person-card .pc-photo img{width:100%;height:100%;object-fit:cover;}
+.person-card .pc-name{font-family:'Special Elite',serif;font-size:12px;color:#1a1208;outline:none;}
+.person-card .pc-role{font-size:10px;color:#8b6914;margin-top:2px;outline:none;}
+.person-card .pc-status-badge{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:8px;padding:2px 6px;margin-top:5px;letter-spacing:1px;}
+.person-card .pc-status-badge.suspect{background:#2a0808;color:#e05040;border:1px solid #5a1010;}
+.person-card .pc-status-badge.cleared{background:#082a10;color:#40b060;border:1px solid #105a20;}
+.person-card .pc-status-badge.witness{background:#0a1a2a;color:#4080c0;border:1px solid #105070;}
+.del-btn{position:absolute;top:-9px;right:-9px;width:18px;height:18px;background:var(--red2);border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:20;line-height:1;font-weight:700;}
+.bi:hover .del-btn{display:flex;}
+.resize-handle{position:absolute;bottom:-5px;right:-5px;width:12px;height:12px;background:var(--gold);cursor:se-resize;opacity:0;transition:opacity 0.2s;}
+.bi:hover .resize-handle{opacity:0.7;}
+
+/* DROPDOWN MENU */
+#ctx-menu{position:fixed;background:var(--surface);border:1px solid var(--border2);z-index:200;display:none;min-width:160px;box-shadow:4px 4px 0 rgba(0,0,0,0.5);}
+#ctx-menu.show{display:block;}
+.ctx-title{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;padding:8px 12px 6px;border-bottom:1px solid var(--border);}
+.ctx-item{display:flex;align-items:center;gap:10px;padding:8px 14px;cursor:pointer;font-size:12px;color:var(--text);transition:background 0.1s;}
+.ctx-item:hover{background:var(--surface3);color:var(--gold);}
+.ctx-item .ci-icon{font-size:15px;width:18px;text-align:center;}
+.ctx-item .ci-label{font-size:12px;}
+.ctx-item .ci-sub{font-size:10px;color:var(--text3);display:block;}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--gold);color:#0b0805;padding:8px 18px;font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:300;}
+
+/* MODAL */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;display:none;align-items:center;justify-content:center;}
+#modal-overlay.show{display:flex;}
+#modal-box{background:var(--surface);border:1px solid var(--border2);padding:28px;width:380px;max-width:90vw;position:relative;}
+#modal-box::before{content:'';position:absolute;top:-1px;left:16px;right:16px;height:2px;background:var(--gold);}
+.modal-title{font-family:'Special Elite',serif;font-size:16px;color:var(--gold2);margin-bottom:20px;letter-spacing:2px;}
+.modal-field{margin-bottom:14px;}
+.modal-field label{display:block;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:2px;margin-bottom:5px;}
+.modal-field input,.modal-field select{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Courier Prime',monospace;font-size:12px;padding:8px 10px;outline:none;}
+.modal-field input:focus{border-color:var(--gold);}
+.modal-upload-area{border:1px dashed var(--border2);padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s;}
+.modal-upload-area:hover{border-color:var(--gold);}
+.modal-upload-area input{display:none;}
+.upload-hint{font-size:11px;color:var(--text3);}
+.upload-hint strong{color:var(--gold);display:block;font-size:13px;margin-bottom:4px;}
+.modal-btns{display:flex;gap:8px;margin-top:20px;}
+.modal-ok{flex:1;background:var(--gold);border:none;color:#0b0805;font-family:'Special Elite',serif;font-size:13px;letter-spacing:2px;padding:10px;cursor:pointer;}
+.modal-ok:hover{background:var(--gold2);}
+.modal-cancel{background:transparent;border:1px solid var(--border2);color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:1px;padding:10px 16px;cursor:pointer;}
+.modal-cancel:hover{border-color:var(--text3);}
+.file-preview-area{margin-top:10px;font-size:11px;color:var(--gold);word-break:break-all;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen" class="screen active">
+  <div id="auth-box">
+    <div class="auth-logo">CASEROOM</div>
+    <div class="auth-sub">SECURE DETECTIVE NETWORK</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuthTab('login')">LOGIN</div>
+      <div class="auth-tab" onclick="switchAuthTab('register')">REGISTER</div>
+    </div>
+    <div id="auth-login-form">
+      <div class="auth-field"><label>AGENT ID (username)</label><input id="login-user" type="text" placeholder="enter your agent id" autocomplete="username"></div>
+      <div class="auth-field"><label>PASSPHRASE</label><input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password"></div>
+      <button class="auth-btn" onclick="doLogin()">ACCESS NETWORK</button>
+    </div>
+    <div id="auth-reg-form" style="display:none">
+      <div class="auth-field"><label>FULL NAME</label><input id="reg-name" type="text" placeholder="your real name"></div>
+      <div class="auth-field"><label>AGENT ID (username)</label><input id="reg-user" type="text" placeholder="choose a unique id"></div>
+      <div class="auth-field"><label>PASSPHRASE</label><input id="reg-pass" type="password" placeholder="min 6 characters" autocomplete="new-password"></div>
+      <div class="auth-field"><label>CONFIRM PASSPHRASE</label><input id="reg-pass2" type="password" placeholder="repeat passphrase" autocomplete="new-password"></div>
+      <button class="auth-btn" onclick="doRegister()">REGISTER AGENT</button>
+    </div>
+    <div class="auth-error" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- LOBBY -->
+<div id="lobby-screen" class="screen">
+  <div id="lobby-box">
+    <div class="lobby-header">
+      <div class="lobby-title">CASEROOM</div>
+      <div class="lobby-user">
+        <div class="lobby-avatar" id="lobby-av"></div>
+        <div class="lobby-username" id="lobby-uname"></div>
+        <div class="lobby-logout" onclick="doLogout()">LOGOUT</div>
+      </div>
+    </div>
+    <div class="new-case-form">
+      <div class="case-form-row">
+        <div class="case-form-field"><label>CASE NAME</label><input id="new-case-name" type="text" placeholder="Operation Midnight..."></div>
+        <div class="case-form-field"><label>CASE NUMBER</label><input id="new-case-num" type="text" placeholder="#0001"></div>
+      </div>
+      <div class="case-form-field" style="margin-bottom:12px"><label>BRIEF DESCRIPTION</label><textarea id="new-case-desc" rows="2" placeholder="Brief summary of the case..."></textarea></div>
+      <button class="create-case-btn" onclick="createCase()">+ OPEN NEW CASE</button>
+    </div>
+    <div class="lobby-section-title">ACTIVE CASES</div>
+    <div class="cases-grid" id="cases-list"></div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app-screen" class="screen">
+  <div id="sidebar">
+    <div id="sidebar-top">
+      <div class="case-badge-row">
+        <div class="case-badge" id="sb-case-num">CASE #----</div>
+        <div class="case-back" onclick="goLobby()">← CASES</div>
+      </div>
+      <div class="sidebar-case-name" id="sb-case-name">Case Name</div>
+      <div class="sidebar-case-desc" id="sb-case-desc"></div>
+    </div>
+    <div id="agents-section">
+      <h4>AGENTS ONLINE</h4>
+      <div id="agents-list"></div>
+    </div>
+    <div id="tools-section">
+      <h4>TOOLS</h4>
+      <div class="tool-grid">
+        <button class="tool-btn active" id="t-draw" onclick="setTool('draw')"><span class="tool-icon">✏️</span>MARKER</button>
+        <button class="tool-btn" id="t-note" onclick="setTool('note')"><span class="tool-icon">📌</span>STICKY</button>
+        <button class="tool-btn" id="t-evidence" onclick="showEvidenceMenu()"><span class="tool-icon">🗂</span>EVIDENCE</button>
+        <button class="tool-btn" id="t-person" onclick="setTool('person')"><span class="tool-icon">👤</span>SUSPECT</button>
+        <button class="tool-btn" id="t-string" onclick="setTool('string')"><span class="tool-icon">🔗</span>STRING</button>
+        <button class="tool-btn" id="t-select" onclick="setTool('select')"><span class="tool-icon">↖</span>SELECT</button>
+      </div>
+    </div>
+    <div id="marker-section">
+      <h4>MARKER</h4>
+      <div class="swatches" id="swatches"></div>
+      <div class="slider-row"><label>SIZE <span id="sz-val">4px</span></label><input type="range" id="sz" min="1" max="40" value="4" oninput="updateMarker()"></div>
+      <div class="slider-row"><label>OPACITY <span id="op-val">90%</span></label><input type="range" id="op" min="10" max="100" value="90" oninput="updateMarker()"></div>
+      <button class="clear-btn" onclick="clearCanvas()">✕ CLEAR ALL MARKS</button>
+    </div>
+    <div id="chat-section">
+      <h4>INTEL CHANNEL</h4>
+      <div id="chat-msgs"></div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-in" placeholder="Send message..." maxlength="200" onkeydown="if(event.key==='Enter')sendChat()">
+        <button id="chat-send-btn" onclick="sendChat()">↑</button>
+      </div>
+    </div>
+  </div>
+  <div id="board-area">
+    <div id="topbar">
+      <h1>DETECTIVE BOARD</h1>
+      <div class="tsep"></div>
+      <button class="tbar-btn" onclick="setTool('note');toast('Click board to place sticky note')">+ STICKY</button>
+      <button class="tbar-btn" onclick="showEvidenceMenu()">+ EVIDENCE</button>
+      <button class="tbar-btn" onclick="setTool('person');toast('Click board to add suspect')">+ SUSPECT</button>
+      <div class="tsep"></div>
+      <button class="tbar-btn" id="str-toggle" onclick="toggleStrings()">STRINGS: OFF</button>
+      <div id="live-indicator"><div class="ld"></div>LIVE</div>
+    </div>
+    <div id="board-wrap">
+      <div id="board-grid"></div>
+      <canvas id="draw-canvas"></canvas>
+      <canvas id="draw-overlay"></canvas>
+      <div id="board-items"></div>
+      <svg id="string-svg"></svg>
+    </div>
+  </div>
+</div>
+
+<!-- EVIDENCE TYPE MENU -->
+<div id="ctx-menu">
+  <div class="ctx-title">ADD EVIDENCE</div>
+  <div class="ctx-item" onclick="openEvidenceModal('image')"><span class="ci-icon">🖼</span><div><span class="ci-label">PHOTOGRAPH</span><span class="ci-sub">Add image file or URL</span></div></div>
+  <div class="ctx-item" onclick="openEvidenceModal('document')"><span class="ci-icon">📄</span><div><span class="ci-label">DOCUMENT</span><span class="ci-sub">PDF, text, report files</span></div></div>
+  <div class="ctx-item" onclick="openEvidenceModal('audio')"><span class="ci-icon">🎙</span><div><span class="ci-label">AUDIO RECORDING</span><span class="ci-sub">MP3, WAV, voice memo</span></div></div>
+</div>
+
+<!-- EVIDENCE MODAL -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div class="modal-title" id="modal-title">ADD EVIDENCE</div>
+    <div id="modal-body"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">CANCEL</button>
+      <button class="modal-ok" id="modal-ok-btn">PLACE ON BOARD</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── STORAGE HELPERS ──
+const DB={
+  get(k){try{return JSON.parse(localStorage.getItem(k));}catch{return null;}},
+  set(k,v){localStorage.setItem(k,JSON.stringify(v));},
+  del(k){localStorage.removeItem(k);}
+};
+
+// ── STATE ──
+let currentUser=null, currentCase=null;
+let tool='draw', color='#c0392b', mSize=4, mOpacity=0.9;
+let drawing=false, lx=0, ly=0;
+let items=[], connections=[], stringsOn=false, strStart=null;
+let evidenceType=null, pendingEvidenceData=null;
+let boardClickHandler=null;
+let itemId=0;
+
+// ── AGENTS SIMULATION ──
+const COLORS=['#c0392b','#e67e22','#f1c40f','#27ae60','#2980b9','#8e44ad','#1abc9c','#e74c3c'];
+const SWATCHES=['#c0392b','#e67e22','#f1c40f','#27ae60','#2980b9','#8e44ad','#1abc9c','#ecf0f1','#e74c3c','#d4a853'];
+
+// ── AUTH ──
+function switchAuthTab(t){
+  document.querySelectorAll('.auth-tab').forEach((el,i)=>el.classList.toggle('active',i===(t==='login'?0:1)));
+  document.getElementById('auth-login-form').style.display=t==='login'?'block':'none';
+  document.getElementById('auth-reg-form').style.display=t==='register'?'block':'none';
+  document.getElementById('auth-err').classList.remove('show');
+}
+function authError(msg){const e=document.getElementById('auth-err');e.textContent=msg;e.classList.add('show');}
+
+function doRegister(){
+  const name=document.getElementById('reg-name').value.trim();
+  const user=document.getElementById('reg-user').value.trim().toLowerCase();
+  const pass=document.getElementById('reg-pass').value;
+  const pass2=document.getElementById('reg-pass2').value;
+  if(!name||!user||!pass)return authError('All fields are required.');
+  if(pass.length<6)return authError('Passphrase must be at least 6 characters.');
+  if(pass!==pass2)return authError('Passphrases do not match.');
+  if(!/^[a-z0-9_]+$/.test(user))return authError('Agent ID: only letters, numbers, underscore.');
+  const users=DB.get('cr_users')||{};
+  if(users[user])return authError('Agent ID already taken. Choose another.');
+  users[user]={name,pass:btoa(pass),color:COLORS[Object.keys(users).length%COLORS.length],joined:Date.now()};
+  DB.set('cr_users',users);
+  toast('Agent registered! You can now log in.');
+  switchAuthTab('login');
+  document.getElementById('login-user').value=user;
+}
+
+function doLogin(){
+  const user=document.getElementById('login-user').value.trim().toLowerCase();
+  const pass=document.getElementById('login-pass').value;
+  if(!user||!pass)return authError('Enter your Agent ID and passphrase.');
+  const users=DB.get('cr_users')||{};
+  if(!users[user])return authError('Agent ID not found. Please register first.');
+  if(users[user].pass!==btoa(pass))return authError('Incorrect passphrase.');
+  currentUser={username:user,...users[user]};
+  DB.set('cr_session',user);
+  setUserOnline(user,true);
+  showLobby();
+}
+
+function doLogout(){
+  if(currentUser)setUserOnline(currentUser.username,false);
+  currentUser=null;currentCase=null;
+  DB.del('cr_session');
+  showScreen('auth-screen');
+}
+
+function setUserOnline(username,online){
+  const presence=DB.get('cr_presence')||{};
+  if(online)presence[username]={online:true,activity:'idle',ts:Date.now()};
+  else delete presence[username];
+  DB.set('cr_presence',presence);
+}
+
+function updateActivity(activity){
+  if(!currentUser)return;
+  const presence=DB.get('cr_presence')||{};
+  if(presence[currentUser.username]){presence[currentUser.username].activity=activity;presence[currentUser.username].ts=Date.now();}
+  DB.set('cr_presence',presence);
+}
+
+function checkSession(){
+  const sess=DB.get('cr_session');
+  if(!sess)return;
+  const users=DB.get('cr_users')||{};
+  if(users[sess]){currentUser={username:sess,...users[sess]};setUserOnline(sess,true);showLobby();}
+}
+
+// ── LOBBY ──
+function showLobby(){
+  showScreen('lobby-screen');
+  const av=document.getElementById('lobby-av');
+  av.textContent=currentUser.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  av.style.background=currentUser.color||'#c8973a';
+  document.getElementById('lobby-uname').textContent=currentUser.name;
+  renderCases();
+}
+
+function renderCases(){
+  const cases=DB.get('cr_cases')||[];
+  const el=document.getElementById('cases-list');
+  if(!cases.length){el.innerHTML='<div class="no-cases">No cases open yet. Create one above.</div>';return;}
+  el.innerHTML=cases.slice().reverse().map(c=>`
+    <div class="case-card" onclick="openCase('${c.id}')">
+      <div class="case-card-left">
+        <div class="case-num">${c.num||'#----'}</div>
+        <div class="case-name">${c.name}</div>
+        <div class="case-desc">${c.desc||'No description'}</div>
+      </div>
+      <div class="case-card-right">
+        <div class="case-agents">By: ${c.creator}</div>
+        <div class="case-date">${new Date(c.created).toLocaleDateString()}</div>
+        <div class="case-status active">ACTIVE</div>
+      </div>
+    </div>`).join('');
+}
+
+function createCase(){
+  const name=document.getElementById('new-case-name').value.trim();
+  const num=document.getElementById('new-case-num').value.trim();
+  const desc=document.getElementById('new-case-desc').value.trim();
+  if(!name)return toast('Enter a case name.');
+  const cases=DB.get('cr_cases')||[];
+  const id='case_'+Date.now();
+  cases.push({id,name,num,desc,creator:currentUser.name,created:Date.now(),items:[],drawings:[],chat:[]});
+  DB.set('cr_cases',cases);
+  document.getElementById('new-case-name').value='';
+  document.getElementById('new-case-num').value='';
+  document.getElementById('new-case-desc').value='';
+  renderCases();
+  toast('Case created! Click to open.');
+}
+
+function openCase(id){
+  const cases=DB.get('cr_cases')||[];
+  currentCase=cases.find(c=>c.id===id);
+  if(!currentCase)return;
+  showBoard();
+}
+
+function goLobby(){showLobby();}
+
+// ── BOARD ──
+function showBoard(){
+  showScreen('app-screen');
+  document.getElementById('sb-case-num').textContent=currentCase.num||'#----';
+  document.getElementById('sb-case-name').textContent=currentCase.name;
+  document.getElementById('sb-case-desc').textContent=currentCase.desc||'';
+  setupCanvas();
+  loadBoardData();
+  renderChat();
+  renderAgents();
+  renderSwatches();
+  setTool('draw');
+  document.getElementById('board-wrap').onclick=function(e){
+    if(e.target===this||e.target.id==='board-grid'||e.target.id==='board-items'){
+      if(boardClickHandler)boardClickHandler(e);
+    }
+  };
+  setInterval(renderAgents,4000);
+  setInterval(pollBoardData,5000);
+}
+
+function loadBoardData(){
+  items=[];connections=[];
+  document.getElementById('board-items').innerHTML='';
+  document.getElementById('string-svg').innerHTML='';
+  const cases=DB.get('cr_cases')||[];
+  const c=cases.find(x=>x.id===currentCase.id);
+  if(!c)return;
+  currentCase=c;
+  (c.boardItems||[]).forEach(d=>restoreItem(d));
+  if(c.drawingData){restoreDrawing(c.drawingData);}
+  renderChat();
+}
+
+function pollBoardData(){
+  const cases=DB.get('cr_cases')||[];
+  const c=cases.find(x=>x.id===currentCase.id);
+  if(!c)return;
+  // Sync chat only (items sync on load/save)
+  currentCase.chat=c.chat||[];
+  renderChat();
+}
+
+function saveBoardData(){
+  const cases=DB.get('cr_cases')||[];
+  const idx=cases.findIndex(x=>x.id===currentCase.id);
+  if(idx<0)return;
+  const boardItems=items.map(item=>{
+    const el=item.el;
+    const d={id:item.id,type:item.type,x:parseInt(el.style.left),y:parseInt(el.style.top),data:item.data};
+    return d;
+  });
+  cases[idx].boardItems=boardItems;
+  const dc=document.getElementById('draw-canvas');
+  cases[idx].drawingData=dc.toDataURL();
+  currentCase=cases[idx];
+  DB.set('cr_cases',cases);
+}
+
+function restoreDrawing(dataUrl){
+  const dc=document.getElementById('draw-canvas');
+  const img=new Image();
+  img.onload=function(){dc.getContext('2d').drawImage(img,0,0);};
+  img.src=dataUrl;
+}
+
+function restoreItem(d){
+  if(d.type==='sticky')spawnSticky(d.x,d.y,d.data,d.id);
+  else if(d.type==='evidence')spawnEvidence(d.x,d.y,d.data,d.id);
+  else if(d.type==='person')spawnPerson(d.x,d.y,d.data,d.id);
+}
+
+// ── CANVAS ──
+function setupCanvas(){
+  const wrap=document.getElementById('board-wrap');
+  const dc=document.getElementById('draw-canvas');
+  const ov=document.getElementById('draw-overlay');
+  function resize(){dc.width=ov.width=wrap.offsetWidth;dc.height=ov.height=wrap.offsetHeight;}
+  resize();window.addEventListener('resize',resize);
+  ov.addEventListener('mousedown',onDrawStart);
+  ov.addEventListener('mousemove',onDrawMove);
+  ov.addEventListener('mouseup',onDrawEnd);
+  ov.addEventListener('mouseleave',onDrawEnd);
+}
+function onDrawStart(e){
+  if(tool!=='draw')return;
+  drawing=true;
+  const r=e.target.getBoundingClientRect();lx=e.clientX-r.left;ly=e.clientY-r.top;
+  updateActivity('drawing');
+}
+function onDrawMove(e){
+  if(!drawing||tool!=='draw')return;
+  const r=e.target.getBoundingClientRect();const x=e.clientX-r.left,y=e.clientY-r.top;
+  const ctx=document.getElementById('draw-canvas').getContext('2d');
+  ctx.globalAlpha=mOpacity;ctx.strokeStyle=color;ctx.lineWidth=mSize;ctx.lineCap='round';ctx.lineJoin='round';
+  ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(x,y);ctx.stroke();
+  lx=x;ly=y;
+}
+function onDrawEnd(){
+  if(drawing){drawing=false;saveBoardData();updateActivity('idle');}
+}
+function clearCanvas(){
+  const c=document.getElementById('draw-canvas');c.getContext('2d').clearRect(0,0,c.width,c.height);
+  saveBoardData();toast('Drawing cleared.');
+}
+
+// ── TOOLS ──
+function setTool(t){
+  tool=t;
+  document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('t-'+t);if(btn)btn.classList.add('active');
+  const ov=document.getElementById('draw-overlay');
+  ov.style.pointerEvents=t==='draw'?'all':'none';
+  const bi=document.getElementById('board-items');
+  bi.style.pointerEvents=t==='draw'?'none':'all';
+  boardClickHandler=null;
+  if(t==='note'){boardClickHandler=function(e){const r=e.currentTarget.getBoundingClientRect();spawnStickyAt(e.clientX-r.left,e.clientY-r.top);};toast('Click the board to place a sticky note');}
+  if(t==='person'){boardClickHandler=function(e){const r=e.currentTarget.getBoundingClientRect();spawnPersonAt(e.clientX-r.left,e.clientY-r.top);};toast('Click the board to add a suspect');}
+  if(t==='string')toast('Click two items to connect with string');
+}
+
+// ── SWATCHES ──
+function renderSwatches(){
+  const el=document.getElementById('swatches');
+  el.innerHTML=SWATCHES.map(c=>`<div class="swatch${c===color?' on':''}" style="background:${c}" onclick="pickColor('${c}',this)"></div>`).join('');
+}
+function pickColor(c,el){color=c;document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('on'));el.classList.add('on');setTool('draw');}
+function updateMarker(){
+  mSize=parseInt(document.getElementById('sz').value);
+  mOpacity=parseInt(document.getElementById('op').value)/100;
+  document.getElementById('sz-val').textContent=mSize+'px';
+  document.getElementById('op-val').textContent=Math.round(mOpacity*100)+'%';
+}
+
+// ── STICKY ──
+function spawnStickyAt(x,y){
+  openStickyModal(x,y);
+}
+function openStickyModal(x,y){
+  document.getElementById('modal-title').textContent='NEW STICKY NOTE';
+  const noteColors=[{name:'Yellow',val:'#f9e84d'},{name:'Red',val:'#ffb3b3'},{name:'Green',val:'#b3f0c8'},{name:'Blue',val:'#b3d9ff'},{name:'Orange',val:'#ffd4a3'},{name:'Purple',val:'#e0b0ff'}];
+  document.getElementById('modal-body').innerHTML=`
+    <div class="modal-field"><label>LABEL / TAG</label><input id="sn-label" type="text" placeholder="e.g. WITNESS, MOTIVE, CLUE..."></div>
+    <div class="modal-field"><label>NOTE TEXT</label><textarea id="sn-text" rows="3" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Courier Prime',monospace;font-size:12px;padding:8px;outline:none;resize:none;" placeholder="Enter your note here..."></textarea></div>
+    <div class="modal-field"><label>COLOR</label><div style="display:flex;gap:8px;flex-wrap:wrap;">${noteColors.map(c=>`<div onclick="this.parentElement.querySelectorAll('div').forEach(d=>d.style.outline='none');this.style.outline='2px solid var(--gold)';document.getElementById('sn-color').value='${c.val}'" style="width:28px;height:28px;background:${c.val};cursor:pointer;border:1px solid #0003;" title="${c.name}"></div>`).join('')}<input type="hidden" id="sn-color" value="#f9e84d"></div></div>`;
+  document.getElementById('modal-ok-btn').onclick=function(){
+    const label=document.getElementById('sn-label').value.trim();
+    const text=document.getElementById('sn-text').value.trim();
+    const noteColor=document.getElementById('sn-color').value;
+    const data={label,text,color:noteColor};
+    spawnSticky(x,y,data);
+    saveBoardData();closeModal();
+    updateActivity('placed sticky');
+  };
+  showModal();
+}
+function spawnSticky(x,y,data,id){
+  const el=document.createElement('div');
+  el.className='bi sticky';
+  el.style.cssText=`left:${x-70}px;top:${y-55}px;background:${data.color||'#f9e84d'};z-index:10;transform:rotate(${(Math.random()-0.5)*5}deg);`;
+  const did=id||('s_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+  el.dataset.id=did;
+  el.innerHTML=`<div class="pin"></div><button class="del-btn" onclick="removeItem('${did}')">×</button>${data.label?`<div class="sticky-label">${data.label}</div>`:''}
+  <div class="sticky-text" contenteditable="false" onfocus="updateActivity('typing')" onblur="saveEdit(this,'${did}');updateActivity('idle');" onmousedown="if(document.getElementById('t-select').classList.contains('active'))this.contentEditable='true'">${data.text||'(empty note)'}</div>`;
+  makeDraggable(el,did);
+  document.getElementById('board-items').appendChild(el);
+  const itemObj={id:did,type:'sticky',el,data};
+  items.push(itemObj);
+}
+
+function saveEdit(el,id){
+  el.contentEditable='false';
+  const item=items.find(i=>i.id===id);
+  if(item){item.data.text=el.textContent;}
+  saveBoardData();
+}
+
+// ── EVIDENCE ──
+function showEvidenceMenu(){
+  const btn=document.getElementById('t-evidence');
+  const r=btn.getBoundingClientRect();
+  const menu=document.getElementById('ctx-menu');
+  menu.style.left=r.right+4+'px';
+  menu.style.top=r.top+'px';
+  menu.classList.add('show');
+  document.addEventListener('click',closeCtxMenu,{once:true,capture:true});
+  setTimeout(()=>document.addEventListener('click',closeCtxMenu,{once:true}),100);
+}
+function closeCtxMenu(){document.getElementById('ctx-menu').classList.remove('show');}
+
+function openEvidenceModal(type){
+  closeCtxMenu();
+  evidenceType=type;pendingEvidenceData=null;
+  const titles={image:'ADD PHOTOGRAPH',document:'ADD DOCUMENT',audio:'ADD AUDIO RECORDING'};
+  document.getElementById('modal-title').textContent=titles[type];
+  let body=`<div class="modal-field"><label>EVIDENCE ID / LABEL</label><input id="ev-label" type="text" placeholder="e.g. PHOTO-001, DOC-A..."></div>
+    <div class="modal-field"><label>DESCRIPTION</label><input id="ev-desc" type="text" placeholder="Brief description..."></div>`;
+  if(type==='image'){
+    body+=`<div class="modal-field"><label>UPLOAD IMAGE</label>
+      <div class="modal-upload-area" onclick="document.getElementById('ev-file').click()">
+        <input type="file" id="ev-file" accept="image/*" onchange="handleFileSelect(this,'image')">
+        <div class="upload-hint"><strong>📷 Click to upload</strong>JPG, PNG, GIF supported</div>
+      </div>
+      <div class="file-preview-area" id="ev-preview"></div></div>`;
+  } else if(type==='document'){
+    body+=`<div class="modal-field"><label>UPLOAD DOCUMENT</label>
+      <div class="modal-upload-area" onclick="document.getElementById('ev-file').click()">
+        <input type="file" id="ev-file" accept=".pdf,.txt,.doc,.docx,image/*" onchange="handleFileSelect(this,'document')">
+        <div class="upload-hint"><strong>📄 Click to upload</strong>PDF, TXT, DOC, or image</div>
+      </div>
+      <div class="file-preview-area" id="ev-preview"></div></div>`;
+  } else if(type==='audio'){
+    body+=`<div class="modal-field"><label>UPLOAD AUDIO</label>
+      <div class="modal-upload-area" onclick="document.getElementById('ev-file').click()">
+        <input type="file" id="ev-file" accept="audio/*" onchange="handleFileSelect(this,'audio')">
+        <div class="upload-hint"><strong>🎙 Click to upload</strong>MP3, WAV, M4A, OGG</div>
+      </div>
+      <div class="file-preview-area" id="ev-preview"></div></div>`;
+  }
+  document.getElementById('modal-body').innerHTML=body;
+  document.getElementById('modal-ok-btn').onclick=function(){
+    const label=document.getElementById('ev-label').value.trim()||'EVIDENCE';
+    const desc=document.getElementById('ev-desc').value.trim();
+    if(!pendingEvidenceData)return toast('Please select a file first.');
+    const data={label,desc,type,fileData:pendingEvidenceData.data,fileName:pendingEvidenceData.name};
+    setTool('select');
+    boardClickHandler=function(e){
+      const r=e.currentTarget.getBoundingClientRect();
+      spawnEvidence(e.clientX-r.left,e.clientY-r.top,data);
+      saveBoardData();boardClickHandler=null;
+      updateActivity('added evidence');
+    };
+    closeModal();
+    toast('Click on the board where to place this evidence');
+  };
+  showModal();
+}
+
+function handleFileSelect(input,type){
+  const file=input.files[0];if(!file)return;
+  const maxSize=5*1024*1024;
+  if(file.size>maxSize){toast('File too large (max 5MB).');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    pendingEvidenceData={data:e.target.result,name:file.name};
+    const prev=document.getElementById('ev-preview');
+    if(type==='image')prev.innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:100px;margin-top:6px;border:1px solid var(--border2);">`;
+    else prev.innerHTML=`✓ ${file.name}`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function spawnEvidence(x,y,data,id){
+  const el=document.createElement('div');
+  el.className='bi evcard';
+  el.style.cssText=`left:${x-70}px;top:${y-60}px;z-index:10;transform:rotate(${(Math.random()-0.5)*3}deg);`;
+  const did=id||('e_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+  el.dataset.id=did;
+  const typeIcons={image:'🖼',document:'📄',audio:'🎙'};
+  let mediaHtml='';
+  if(data.fileData){
+    if(data.type==='image')mediaHtml=`<img class="ev-preview" src="${data.fileData}" alt="evidence">`;
+    else if(data.type==='audio')mediaHtml=`<audio class="ev-audio" controls src="${data.fileData}"></audio>`;
+    else if(data.type==='document'){
+      if(data.fileData.startsWith('data:image'))mediaHtml=`<img class="ev-preview" src="${data.fileData}" alt="doc">`;
+      else mediaHtml=`<div class="ev-docname">📄 ${data.fileName||'document'}</div>`;
+    }
+  }
+  el.innerHTML=`<div class="pin"></div><button class="del-btn" onclick="removeItem('${did}')">×</button>
+    <div class="ev-id">${typeIcons[data.type]||'🗂'} ${data.label}</div>
+    <div class="ev-type">${data.desc||''}</div>${mediaHtml}
+    <div class="ev-tag">LOGGED</div>`;
+  makeDraggable(el,did);
+  document.getElementById('board-items').appendChild(el);
+  items.push({id:did,type:'evidence',el,data});
+}
+
+// ── PERSON ──
+function spawnPersonAt(x,y){openPersonModal(x,y);}
+function openPersonModal(x,y){
+  document.getElementById('modal-title').textContent='ADD SUSPECT / PERSON';
+  document.getElementById('modal-body').innerHTML=`
+    <div class="modal-field"><label>NAME</label><input id="pc-name" type="text" placeholder="Full name or alias..."></div>
+    <div class="modal-field"><label>ROLE</label><select id="pc-role" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Courier Prime',monospace;font-size:12px;padding:8px;outline:none;">
+      <option>Suspect</option><option>Witness</option><option>Person of Interest</option><option>Victim</option><option>Informant</option><option>Cleared</option></select></div>
+    <div class="modal-field"><label>STATUS / NOTES</label><input id="pc-status" type="text" placeholder="Alibi unconfirmed, wanted, etc..."></div>
+    <div class="modal-field"><label>PHOTO (optional)</label>
+      <div class="modal-upload-area" onclick="document.getElementById('pc-photo').click()">
+        <input type="file" id="pc-photo" accept="image/*" onchange="handlePersonPhoto(this)">
+        <div class="upload-hint"><strong>👤 Upload photo</strong>Optional face photo</div>
+      </div>
+      <div class="file-preview-area" id="pc-preview"></div></div>`;
+  document.getElementById('modal-ok-btn').onclick=function(){
+    const name=document.getElementById('pc-name').value.trim()||'Unknown';
+    const role=document.getElementById('pc-role').value;
+    const status=document.getElementById('pc-status').value.trim();
+    const photo=pendingEvidenceData?pendingEvidenceData.data:null;
+    const data={name,role,status,photo};
+    pendingEvidenceData=null;
+    spawnPerson(x,y,data);
+    saveBoardData();closeModal();
+    updateActivity('added person');
+  };
+  pendingEvidenceData=null;
+  showModal();
+}
+function handlePersonPhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    pendingEvidenceData={data:e.target.result};
+    document.getElementById('pc-preview').innerHTML=`<img src="${e.target.result}" style="width:50px;height:50px;object-fit:cover;border-radius:50%;margin-top:6px;">`;
+  };
+  reader.readAsDataURL(file);
+}
+function spawnPerson(x,y,data,id){
+  const el=document.createElement('div');
+  el.className='bi person-card';
+  el.style.cssText=`left:${x-60}px;top:${y-85}px;z-index:10;`;
+  const did=id||('p_'+Date.now()+'_'+Math.random().toString(36).slice(2));
+  el.dataset.id=did;
+  const roleClass=data.role==='Suspect'?'suspect':data.role==='Cleared'?'cleared':'witness';
+  const photoContent=data.photo?`<img src="${data.photo}" alt="photo">`:`<span style="font-size:24px;">👤</span>`;
+  el.innerHTML=`<div class="pin"></div><button class="del-btn" onclick="removeItem('${did}')">×</button>
+    <div class="pc-photo">${photoContent}</div>
+    <div class="pc-name" data-field="name">${data.name}</div>
+    <div class="pc-role" data-field="role">${data.role}</div>
+    ${data.status?`<div class="pc-status-badge ${roleClass}">${data.status}</div>`:''}`;
+  makeDraggable(el,did);
+  document.getElementById('board-items').appendChild(el);
+  items.push({id:did,type:'person',el,data});
+}
+
+// ── DRAG ──
+function makeDraggable(el,id){
+  let ox,oy,dragging=false;
+  el.addEventListener('mousedown',function(e){
+    if(tool==='draw'||e.target.classList.contains('del-btn')||e.target.tagName==='AUDIO'||e.target.tagName==='INPUT')return;
+    if(tool==='string'){handleStringClick(el,id);return;}
+    if(tool==='select'&&e.target.closest('[contenteditable]'))return;
+    dragging=true;ox=e.clientX-el.offsetLeft;oy=e.clientY-el.offsetTop;el.style.zIndex=100;
+    e.preventDefault();e.stopPropagation();
+    updateActivity('moving item');
+  });
+  document.addEventListener('mousemove',function(e){
+    if(!dragging)return;el.style.left=(e.clientX-ox)+'px';el.style.top=(e.clientY-oy)+'px';updateStrings();
+  });
+  document.addEventListener('mouseup',function(){
+    if(dragging){dragging=false;el.style.zIndex=10;saveBoardData();updateActivity('idle');}
+  });
+}
+
+// ── REMOVE ──
+function removeItem(id){
+  connections=connections.filter(c=>c.a.dataset.id!==id&&c.b.dataset.id!==id);
+  items=items.filter(i=>i.id!==id);
+  const el=document.getElementById('board-items').querySelector(`[data-id="${id}"]`);
+  if(el)el.remove();
+  renderStrings();saveBoardData();
+}
+
+// ── STRINGS ──
+function handleStringClick(el,id){
+  if(!strStart){strStart=el;el.style.outline='2px dashed var(--gold)';toast('Now click another item to connect');}
+  else{
+    if(strStart!==el){connections.push({a:strStart,b:el});if(stringsOn)renderStrings();}
+    strStart.style.outline='';strStart=null;saveBoardData();
+  }
+}
+function renderStrings(){
+  const svg=document.getElementById('string-svg');
+  if(!stringsOn){svg.innerHTML='';return;}
+  const wrap=document.getElementById('board-wrap').getBoundingClientRect();
+  svg.innerHTML=connections.map(c=>{
+    const ra=c.a.getBoundingClientRect(),rb=c.b.getBoundingClientRect();
+    const x1=ra.left+ra.width/2-wrap.left,y1=ra.top+ra.height/2-wrap.top;
+    const x2=rb.left+rb.width/2-wrap.left,y2=rb.top+rb.height/2-wrap.top;
+    const mx=(x1+x2)/2,my=Math.min(y1,y2)-40;
+    return `<path d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" stroke="#b03020" stroke-width="1.5" fill="none" opacity="0.85"/>`;
+  }).join('');
+}
+function updateStrings(){if(stringsOn)renderStrings();}
+function toggleStrings(){
+  stringsOn=!stringsOn;
+  document.getElementById('str-toggle').textContent='STRINGS: '+(stringsOn?'ON':'OFF');
+  renderStrings();
+}
+
+// ── AGENTS ──
+function renderAgents(){
+  if(!currentCase)return;
+  const presence=DB.get('cr_presence')||{};
+  const users=DB.get('cr_users')||{};
+  const el=document.getElementById('agents-list');
+  const onlineAgents=Object.entries(presence).map(([uname,p])=>({uname,...p,...(users[uname]||{})}));
+  if(!onlineAgents.length){el.innerHTML='<div style="font-size:10px;color:var(--text3);">No agents online</div>';return;}
+  el.innerHTML=onlineAgents.map(a=>{
+    const isMe=a.uname===currentUser.username;
+    const initials=(a.name||a.uname).split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const actClass=a.activity&&a.activity!=='idle'?'active-activity':'';
+    return `<div class="agent-row">
+      <div class="agent-av${isMe?' me':''}" style="background:${a.color||'#888'}">
+        ${initials}<div class="presence-dot online"></div></div>
+      <div class="agent-info">
+        <div class="agent-name">${a.name||a.uname}${isMe?' (you)':''}</div>
+        <div class="agent-activity ${actClass}">${a.activity||'online'}</div>
+      </div></div>`;
+  }).join('');
+}
+
+// ── CHAT ──
+function renderChat(){
+  const msgs=currentCase.chat||[];
+  const el=document.getElementById('chat-msgs');
+  el.innerHTML=msgs.map(m=>
+    m.sys?`<div class="chat-sys">${m.text}</div>`
+    :`<div class="chat-msg"><span class="cn" style="color:${m.color||'var(--gold)'}">${m.name}</span><span class="cts">${m.time}</span><br><span class="ct">${m.text}</span></div>`
+  ).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function sendChat(){
+  const inp=document.getElementById('chat-in');const txt=inp.value.trim();if(!txt)return;
+  const now=new Date();const time=now.getHours()+':'+String(now.getMinutes()).padStart(2,'0');
+  const msg={name:currentUser.name,color:currentUser.color||'var(--gold)',text:txt,time};
+  const cases=DB.get('cr_cases')||[];
+  const idx=cases.findIndex(x=>x.id===currentCase.id);
+  if(idx<0)return;
+  if(!cases[idx].chat)cases[idx].chat=[];
+  cases[idx].chat.push(msg);
+  DB.set('cr_cases',cases);
+  currentCase.chat=cases[idx].chat;
+  inp.value='';renderChat();
+  updateActivity('typing');
+  setTimeout(()=>updateActivity('idle'),3000);
+}
+
+// ── MODAL ──
+function showModal(){document.getElementById('modal-overlay').classList.add('show');}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('show');pendingEvidenceData=null;}
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+// ── UTILS ──
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>{s.classList.toggle('active',s.id===id);});}
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';
+  clearTimeout(t._tid);t._tid=setTimeout(()=>t.style.opacity='0',2800);
+}
+
+// ── INIT ──
+renderSwatches();
+checkSession();
+</script>
+</body>
+</html>
+ENDOFFILE
+echo "File size: $(wc -c < /home/claude/detective_app.html) bytes"
